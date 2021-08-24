@@ -1,0 +1,45 @@
+debug:
+  summary_writer: true
+  break_train_loop: false
+
+experiment:
+  name: albert-unfreezed
+
+data:
+  data_path: D:/Data/neural-punctuator/ted_dataset/
+  train_file: TODO
+  test_file: TODO
+  output_labels: [empty, period, question, comma]
+
+preprocessor:
+  preproc_arg: TODO
+
+
+model:
+  name: albert
+  load_model_repo: albert-base-v1                            # From huggingface
+  bert_output_dim: 768
+  linear_hidden_dim: 1568
+  num_classes: 4
+  seq_len: 512
+  dropout: 0.2
+
+  save_model_path: D:/Data/neural-punctuator/models/
+
+trainer:
+  use_gpu: cuda:0
+  batch_size: 4
+  num_epochs: 15
+  shuffle: true
+  optimizer: adamw
+  loss: NLLLoss
+  base_learning_rate: 0.00003 #3e-5
+  classifier_learning_rate: 0.0001 #1e-4
+  metrics: [precision, recall, f-score, auc]
+  warmup_steps: 300
+  clip_seq: 32
+  grad_clip: 1.5
+  train_bert: true
+#  load_model: albert-unfreezed-epoch-15.pth
+  seq_shift: 32   # Shift each training sample +-seq_shift to get more different samples
+
