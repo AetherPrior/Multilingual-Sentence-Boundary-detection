@@ -6,7 +6,7 @@ experiment:
   name: xlm-roberta-base
 
 data:
-  data_path: /content/drive/MyDrive/SUD_PROJECT/neural-punctuator/dataset/zh/xlm-roberta-base/
+  data_path: /content/drive/MyDrive/SUD_PROJECT/neural-punctuator/dataset/dual/xlm-roberta-base/
   output_labels: [empty, period, question, comma]
 
 preprocessor:
