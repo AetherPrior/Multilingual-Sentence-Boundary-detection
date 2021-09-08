@@ -7,6 +7,19 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from torch.nn.utils.rnn import pad_sequence
 
+class BertMetrics:
+    def __init__(self, prefix, config):
+        self.config = config
+
+        with open(config.data.data_path + prefix + "_data.pkl", 'rb') as f:
+            texts, targets, space_count, p_count, q_count, comma_count = pickle.load(f)
+            self.space_count = space_count
+            self.p_count = p_count
+            self.q_count = q_count
+            self.comma_count = comma_count
+    
+    def get_metrics(self):
+        return self.space_count, self.p_count, self.q_count, self.comma_count
 
 class BertDataset(Dataset):
     def __init__(self, prefix, config, is_train=False):
@@ -15,7 +28,7 @@ class BertDataset(Dataset):
         self.is_train = is_train
 
         with open(config.data.data_path + prefix + "_data.pkl", 'rb') as f:
-            texts, targets = pickle.load(f)
+            texts, targets, _,_,_,_ = pickle.load(f)
             self.encoded_texts = [word for t in texts for word in t]
             self.targets = [t for ts in targets for t in ts]
 
@@ -40,10 +53,11 @@ def collate(batch):
     # return pad_sequence(batch, batch_first=True, padding_value=PAD_ID)
 
 
-def get_datasets(config):
+def get_datasets_metrics(config):
+    space_count, p_count, q_count, comma_count = BertMetrics("train",config).get_metrics()
     train_dataset = BertDataset("train", config, is_train=True)
     valid_dataset = BertDataset("valid", config)
-    return train_dataset, valid_dataset
+    return train_dataset, valid_dataset, space_count, p_count, q_count, comma_count
 
 
 def get_data_loaders(train_dataset, valid_dataset, config):

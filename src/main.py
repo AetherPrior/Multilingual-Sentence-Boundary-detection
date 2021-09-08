@@ -3,7 +3,7 @@ from neural_punctuator.wrappers.BertPunctuatorWrapper import BertPunctuatorWrapp
 
 if __name__ == '__main__':
     config = get_config_from_yaml(
-        'neural_punctuator/configs/config-szeged-bert-base-multilingual-uncased-unfreeze.yaml')
+        'neural_punctuator/configs/config-XLM-roberta-base-uncased.yaml')
     pipe = BertPunctuatorWrapper(config)
     pipe.train()
 

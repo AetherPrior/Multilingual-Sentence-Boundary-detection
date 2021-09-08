@@ -6,7 +6,7 @@ experiment:
   name: xlm-roberta-base
 
 data:
-  data_path: /content/drive/MyDrive/SUD_PROJECT/neural-punctuator/dataset/xlm-roberta-base/
+  data_path: /content/drive/MyDrive/SUD_PROJECT/neural-punctuator/dataset/zh/xlm-roberta-base/
   output_labels: [empty, period, question, comma]
 
 preprocessor:
@@ -37,7 +37,7 @@ trainer:
   clip_seq: 32
   grad_clip: 1.5
   train_bert: true
-  load_model: xlm-roberta-base-epoch-1.pth
+  load_model: xlm-roberta-base-epoch-0.pth
   seq_shift: 32   # Shift each training sample +-seq_shift to get more different samples
   show_confusion_matrix: false
 

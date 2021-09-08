@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from neural_punctuator.base.BaseTrainer import BaseTrainer
-from neural_punctuator.data.dataloader import BertDataset, collate, get_data_loaders, get_datasets
+from neural_punctuator.data.dataloader import BertDataset, collate, get_data_loaders, get_datasets_metrics
 from neural_punctuator.models.BertPunctuator import BertPunctuator
 from torch.optim import AdamW  # TODO
 from torch import nn
@@ -41,7 +41,11 @@ class BertPunctuatorTrainer(BaseTrainer):
         else:
             self.device = torch.device('cpu')
 
-        self.train_dataset, self.valid_dataset = get_datasets(config)
+        self.train_dataset, self.valid_dataset, self.space_count, self.p_count, self.q_count, self.comma_count = get_datasets_metrics(config)
+        self.punct_count = self.space_count + self.p_count + self.q_count + self.comma_count
+        #print(1- self.space_count / self.punct_count)
+        #print(1- self.p_count/ self.punct_count)
+        
         self.train_loader, self.valid_loader = get_data_loaders(self.train_dataset, self.valid_dataset, config)
         self.model = model.to(self.device)
         self.model.train()
@@ -82,37 +86,84 @@ class BertPunctuatorTrainer(BaseTrainer):
             #TODO: self.summary_writer.add_hparams(self._config.toDict(), {})
         else:
             self.summary_writer = None
+    
+    def mask_out(self,text,targets):
+        """
+        mask some punctuations 
+        """
+        # print([(i, j) for i,j in zip(text[0],targets[0]) if j == -1 and i.item() in [6,4,5,705]])
+        """
+        mask =  (np.array([[word == 6 for word in stmt] for stmt in text]) & (np.random.rand(*text.shape) < .3))
+        mask |= (np.array([[word == 4 for word in stmt] for stmt in text]) & (np.random.rand(*text.shape) < .5))
+        mask |= (np.array([[word == 5 for word in stmt] for stmt in text]) & (np.random.rand(*text.shape) < .4))
+        mask |= (np.array([[word == 705 for word in stmt] for stmt in text]) & (np.random.rand(*text.shape) < .6))
+        """
 
+        mask =   ((text == 6) & (np.random.rand(*text.shape) < 1- self.space_count / self.punct_count ))
+        mask |=  ((text == 4) & (np.random.rand(*text.shape) < 1- self.comma_count / self.punct_count )) 
+        mask |=  (((text == 5) | (text == 30)) & (np.random.rand(*text.shape) < 1- self.p_count / self.punct_count))
+        mask |=  ((text == 705) & (np.random.rand(*text.shape) < 1- self.q_count / self.punct_count))
+        mask &=  (targets != -1).type(torch.uint8) # corner case due to data inconsistencies
+
+        mask = mask.bool()
+        text[mask] = 250001
+        #text = torch.tensor([['<mask>' if mw == True else word for word, mw in zip(statement,ms)] for statement, ms in zip(text,mask)])
+        # print(text)
+        return text
+    
+    def valid_mask_out(self,text,targets):
+        """
+        mask every single punctuation mark
+        """
+        values_mask = [4,5,30,6,705]
+        
+        mask =  sum(text == i for i in values_mask)
+        mask &=  (targets != -1).type(torch.uint8)
+        mask = mask.bool()
+        
+        text[mask] = 250001
+        return text        
+        
     def train(self):
         printer_counter = 0
-
+        torch.autograd.set_detect_anomaly(True)
         for epoch_num in range(self._config.trainer.num_epochs):
             log.info(f"Epoch #{epoch_num}")
 
             # Train loop
             self.model.train()
+            # self.train_loader_subset = torch.utils.data.Subset(self.train_dataset, indices=[0,1,2,3,4,5,6,7,8,9,10])
+            # subset = torch.utils.data.subset()
             pbar = tqdm(self.train_loader)
             for data in pbar:
                 self.optimizer.zero_grad()
 
                 text, targets = data
+                
+                # text = self.mask_out(text,targets)
+                text = self.valid_mask_out(text,targets)
+                
                 preds, binary_preds = self.model(text.to(self.device))
 
                 # preds = preds[:, self._config.trainer.clip_seq: -self._config.trainer.clip_seq, :]
                 # targets = targets[:, self._config.trainer.clip_seq:-self._config.trainer.clip_seq]
 
                 # Mask some "empty" targets
-                mask = ((targets == 0) & (np.random.rand(*targets.shape) < .1)) | (targets > 0)
-                mask = mask.to(self.device)
+                # mask = ((targets == 0) & (np.random.rand(*targets.shape) < .1)) | (targets > 0)
+                # mask = mask.to(self.device)
 
                 # Do not predict output after tokens which are not the end of a word
-                not_a_word_mask = (targets == -1).to(self.device)
-                word_mask = ~not_a_word_mask
-                targets[not_a_word_mask] = 0
-
-                losses = self.criterion(preds.reshape(-1, self._config.model.num_classes),
+                mask_tokens = torch.tensor(text == 250001).to(self.device).bool()
+                
+                # word_mask = ~not_a_word_mask
+                
+                targets = targets[mask_tokens] 
+                
+                predictions = preds[mask_tokens.unsqueeze(2).repeat((1,1,4)).to(self.device)]   ## REQUIRES GRAD = True, out-of-place operation
+                
+                losses = self.criterion(predictions.reshape(-1, self._config.model.num_classes),
                                    targets.to(self.device).reshape(-1))
-                mask = word_mask * mask
+                # mask = word_mask * mask
                 # losses = mask.view(-1).to(self.device) * losses
                 # loss = losses.sum() / mask.sum()
                 loss = losses.mean()
@@ -141,24 +192,30 @@ class BertPunctuatorTrainer(BaseTrainer):
             self.model.eval()
             valid_loss = 0
             all_valid_preds = []
+            all_valid_targets = []
             for data in tqdm(self.valid_loader):
+                
                 text, targets = data
+                text = self.valid_mask_out(text,targets)
+                
                 with torch.no_grad():
                     preds, _ = self.model(text.to(self.device))
-
-                word_mask = targets != -1
-                preds = preds[word_mask]
-                targets = targets[word_mask]
-
-                loss = self.criterion(preds.view(-1, self._config.model.num_classes), targets.to(self.device).view(-1))
+                
+                mask_tokens = torch.tensor(text == 250001).bool()
+                predictions = preds[mask_tokens.unsqueeze(2).repeat((1,1,4)).to(self.device)]
+                targets = targets[mask_tokens]
+                all_valid_targets.append(targets)
+                
+                loss = self.criterion(predictions.view(-1, self._config.model.num_classes), targets.to(self.device).view(-1))
                 valid_loss += loss.mean().item()
 
-                all_valid_preds.append(preds.detach().cpu().numpy())
+                all_valid_preds.append(predictions.detach().cpu().numpy())
 
             valid_loss /= len(self.valid_loader)
             all_valid_preds = np.concatenate(all_valid_preds)
-
-            metrics = get_eval_metrics(self.all_valid_target, all_valid_preds, self._config)
+            all_valid_targets = np.concatenate(all_valid_targets)
+            
+            metrics = get_eval_metrics(all_valid_targets, all_valid_preds, self._config) # changed from self.all_valid_target
             metrics["loss"] = valid_loss
 
             print_metrics(printer_counter, metrics, self.summary_writer, 'valid',
@@ -166,4 +223,5 @@ class BertPunctuatorTrainer(BaseTrainer):
 
             # Save model every epoch
             save(self.model, self.optimizer, epoch_num+1, metrics, self._config)
+            print("saved model")
 

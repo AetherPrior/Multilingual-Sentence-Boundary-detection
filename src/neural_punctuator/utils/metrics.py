@@ -46,9 +46,10 @@ def get_eval_metrics(targets, preds, config):
     log.info(f'Macro f-score is {macro_f1_score}')
     metrics['f_score'] = macro_f1_score
 
-    auc_score = roc_auc_score(targets, preds, average='macro', multi_class='ovo')
-    log.info(f'AUC is: {auc_score}')
-    metrics['auc'] = auc_score
+    #Since masking might yield zero for a certain class in extreme circumstances
+    #auc_score = roc_auc_score(targets, preds, average='macro', multi_class='ovo')
+    #log.info(f'AUC is: {auc_score}')
+    #metrics['auc'] = auc_score
 
 
     conf_mx = get_confusion_mx(targets, pred_index)

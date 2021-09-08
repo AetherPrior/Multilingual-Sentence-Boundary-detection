@@ -66,3 +66,16 @@ class Classifier(BaseModel):
         binary_output = torch.sigmoid(self.binary_classifier(x))
         x = self.linear2(x)
         return x, binary_output
+
+'''
+def loss(model,x,y_true,y_pred):
+    loss_y , loss_y_hat = [],[]
+    for word, y_hat, y in zip(x,y_true,y_pred):
+        if word == 250001:
+            loss_y.append(y_true)
+            loss_y_hat.append(y_pred)
+'''          
+    
+            
+            
+            
