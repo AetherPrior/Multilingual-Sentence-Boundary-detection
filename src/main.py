@@ -4,14 +4,14 @@ import logging
 import argparse
 parser = argparse.ArgumentParser(description='arguments for the model')
 parser.add_argument('--save-model', action='store_true',
-                    help='save model or not')
+                    help='save model')
 parser.add_argument('--break-train-loop', action='store_true',
                     help='prevent training for debugging purposes')
-parser.add_argument('--stage',type=str, default='')
-parser.add_argument('--model-path',type=str,default='/content/drive/MyDrive/SUD_PROJECT/neural-punctuator/models-xlm-roberta/')
-parser.add_argument('--data-path',type=str,default='/content/drive/MyDrive/SUD_PROJECT/neural-punctuator/dataset/dual/xlm-roberta-base/')
-parser.add_argument('--num-epochs',type=int,default=-1)
-parser.add_argument('--log-level',type=str,choices=['INFO','DEBUG','WARNING','ERROR'],default='INFO')
+parser.add_argument('--stage',type=str, default='',help='load model from checkpoint stage')
+parser.add_argument('--model-path',type=str,default='/content/drive/MyDrive/SUD_PROJECT/neural-punctuator/models-xlm-roberta/',help='path to model directory')
+parser.add_argument('--data-path',type=str,default='/content/drive/MyDrive/SUD_PROJECT/neural-punctuator/dataset/dual/xlm-roberta-base/',help='path to dataset directory')
+parser.add_argument('--num-epochs',type=int,default=-1,help='no. of epochs to run the model')
+parser.add_argument('--log-level',type=str,choices=['INFO','DEBUG','WARNING','ERROR'],default='INFO',help='logging info to be displayed')
 parser.add_argument('--save-n-steps',type=int,help='Save after n steps, default=1 epoch',default=-1)
 parser.add_argument('--force-save',action='store_true',help='Force save, overriding all settings')
 
@@ -22,9 +22,7 @@ log_enum = {
     'ERROR': logging.ERROR
 }
 
-def override_arguments(config):
-    args = parser.parse_args()
-    
+def override_arguments(args,config):
     logging.basicConfig(level=log_enum[args.log_level])
     
     if args.save_model:
@@ -61,10 +59,10 @@ def override_arguments(config):
     
 
 if __name__ == '__main__':
-
+    args = parser.parse_args()
     config = get_config_from_yaml(
         'neural_punctuator/configs/config-XLM-roberta-base-uncased.yaml')
-    config = override_arguments(config)
+    config = override_arguments(args,config)
 
     if config.model.save_model == False:
         print("WARNING, MODEL NOT BEING SAVED")
