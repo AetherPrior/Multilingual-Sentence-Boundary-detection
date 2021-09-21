@@ -7,6 +7,7 @@ from neural_punctuator.base.BaseTrainer import BaseTrainer
 from neural_punctuator.data.dataloader import BertDataset, collate, get_data_loaders, get_datasets_metrics
 from neural_punctuator.models.BertPunctuator import BertPunctuator
 from torch.optim import AdamW  # TODO
+from torch_optimizer import RAdam
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 
@@ -43,9 +44,7 @@ class BertPunctuatorTrainer(BaseTrainer):
 
         self.train_dataset, self.valid_dataset, self.space_count, self.p_count, self.q_count, self.comma_count = get_datasets_metrics(config)
         self.punct_count = self.space_count + self.p_count + self.q_count + self.comma_count
-        #print(1- self.space_count / self.punct_count)
-        #print(1- self.p_count/ self.punct_count)
-        
+ 
         self.train_loader, self.valid_loader = get_data_loaders(self.train_dataset, self.valid_dataset, config)
         self.model = model.to(self.device)
         self.model.train()
@@ -62,41 +61,37 @@ class BertPunctuatorTrainer(BaseTrainer):
                 {'params': self.model.base.parameters(), 'lr': self._config.trainer.base_learning_rate},
                 {'params': self.model.classifier.parameters(), 'lr': self._config.trainer.classifier_learning_rate}
             ]
+        optimizer_args_radam =[
+                {'params': self.model.base.parameters(), 'lr': self._config.trainer.base_learning_rate, 'weight_decay': self._config.trainer.weight_decay},
+                {'params': self.model.classifier.parameters(), 'lr': self._config.trainer.classifier_learning_rate, 'weight_decay': self._config.trainer.weight_decay}
+            ]
         if self._config.trainer.optimizer == 'adam':
             self.optimizer = torch.optim.Adam(optimizer_args)
 
         elif self._config.trainer.optimizer == 'adamw':
             self.optimizer = torch.optim.AdamW(optimizer_args)
+        elif self._config.trainer.optimizer == 'radam':
+            self.optimizer = RAdam(optimizer_args_radam)
         else:
             log.error('Please provide a proper optimizer')
             exit(1)
 
         if self._config.trainer.load_model:
-            load(self.model, self.optimizer, self._config)
+            self.epochs = load(self.model, self.optimizer, self._config)
 
-        # TODO: add to config
         self.sched = LinearScheduler(self.optimizer, self._config.trainer.warmup_steps)
 
-        # TODO:
         self.all_valid_target = np.concatenate([targets.numpy() for _, targets in self.valid_loader])
         self.all_valid_target = self.all_valid_target[self.all_valid_target != -1]
 
         if self._config.debug.summary_writer:
             self.summary_writer = SummaryWriter(comment=self._config.experiment.name)
-            #TODO: self.summary_writer.add_hparams(self._config.toDict(), {})
         else:
             self.summary_writer = None
     
     def mask_out(self,text,targets):
         """
         mask some punctuations 
-        """
-        # print([(i, j) for i,j in zip(text[0],targets[0]) if j == -1 and i.item() in [6,4,5,705]])
-        """
-        mask =  (np.array([[word == 6 for word in stmt] for stmt in text]) & (np.random.rand(*text.shape) < .3))
-        mask |= (np.array([[word == 4 for word in stmt] for stmt in text]) & (np.random.rand(*text.shape) < .5))
-        mask |= (np.array([[word == 5 for word in stmt] for stmt in text]) & (np.random.rand(*text.shape) < .4))
-        mask |= (np.array([[word == 705 for word in stmt] for stmt in text]) & (np.random.rand(*text.shape) < .6))
         """
 
         mask =   ((text == 6) & (np.random.rand(*text.shape) < 1- self.space_count / self.punct_count ))
@@ -107,11 +102,9 @@ class BertPunctuatorTrainer(BaseTrainer):
 
         mask = mask.bool()
         text[mask] = 250001
-        #text = torch.tensor([['<mask>' if mw == True else word for word, mw in zip(statement,ms)] for statement, ms in zip(text,mask)])
-        # print(text)
         return text
     
-    def valid_mask_out(self,text,targets):
+    def full_mask_out(self,text,targets):
         """
         mask every single punctuation mark
         """
@@ -123,26 +116,72 @@ class BertPunctuatorTrainer(BaseTrainer):
         
         text[mask] = 250001
         return text        
+
+    def validate(self, printer_counter):    
+        # Valid loop
+        self.model.eval()
+        valid_loss = 0
+        all_valid_preds = []
+        all_valid_targets = []
+        for data in tqdm(self.valid_loader):
+            
+            text, targets = data
+            text = self.full_mask_out(text,targets)
+            
+            with torch.no_grad():
+                preds, _ = self.model(text.to(self.device))
+            
+            mask_tokens = torch.tensor(text == 250001).bool()
+            predictions = preds[mask_tokens.unsqueeze(2).repeat((1,1,4)).to(self.device)]
+            targets = targets[mask_tokens]
+            all_valid_targets.append(targets)
+            
+            loss = self.criterion(predictions.view(-1, self._config.model.num_classes), targets.to(self.device).view(-1))
+            valid_loss += loss.mean().item()
+
+            all_valid_preds.append(predictions.detach().cpu().numpy())
+
+        valid_loss /= len(self.valid_loader)
+        all_valid_preds = np.concatenate(all_valid_preds)
+        all_valid_targets = np.concatenate(all_valid_targets)
+        
+        metrics = get_eval_metrics(all_valid_targets, all_valid_preds, self._config) # changed from self.all_valid_target
+        metrics["loss"] = valid_loss
+
+        print_metrics(printer_counter, metrics, self.summary_writer, 'valid',
+                      model_name=self._config.model.name)
+        return metrics
+    
+    def print_data(text, targets):
+        textstring = []
+        for i,j in zip(text[0], targets):
+            if i == 250001:
+                pass ## TODO
+                
+                
         
     def train(self):
         printer_counter = 0
         torch.autograd.set_detect_anomaly(True)
         for epoch_num in range(self._config.trainer.num_epochs):
-            log.info(f"Epoch #{epoch_num}")
+            log.info(f"Epoch #{self.epochs+epoch_num}")
 
             # Train loop
             self.model.train()
-            # self.train_loader_subset = torch.utils.data.Subset(self.train_dataset, indices=[0,1,2,3,4,5,6,7,8,9,10])
-            # subset = torch.utils.data.subset()
             pbar = tqdm(self.train_loader)
+            counter = 0
             for data in pbar:
+                counter+=1
                 self.optimizer.zero_grad()
 
                 text, targets = data
                 
-                # text = self.mask_out(text,targets)
-                text = self.valid_mask_out(text,targets)
+                text = self.full_mask_out(text,targets)
                 
+                if not (counter % 100):
+                    print(text.shape)
+                    print(self._preprocessor._tokenizer.decode(text[0]))
+                    
                 preds, binary_preds = self.model(text.to(self.device))
 
                 # preds = preds[:, self._config.trainer.clip_seq: -self._config.trainer.clip_seq, :]
@@ -155,17 +194,12 @@ class BertPunctuatorTrainer(BaseTrainer):
                 # Do not predict output after tokens which are not the end of a word
                 mask_tokens = torch.tensor(text == 250001).to(self.device).bool()
                 
-                # word_mask = ~not_a_word_mask
-                
                 targets = targets[mask_tokens] 
                 
                 predictions = preds[mask_tokens.unsqueeze(2).repeat((1,1,4)).to(self.device)]   ## REQUIRES GRAD = True, out-of-place operation
                 
                 losses = self.criterion(predictions.reshape(-1, self._config.model.num_classes),
                                    targets.to(self.device).reshape(-1))
-                # mask = word_mask * mask
-                # losses = mask.view(-1).to(self.device) * losses
-                # loss = losses.sum() / mask.sum()
                 loss = losses.mean()
                 loss.backward()
 
@@ -184,44 +218,18 @@ class BertPunctuatorTrainer(BaseTrainer):
                               self.summary_writer, 'train',
                               model_name=self._config.model.name)
                 printer_counter += 1
-
+                
                 if self._config.debug.break_train_loop:
                     break
-
-            # Valid loop
-            self.model.eval()
-            valid_loss = 0
-            all_valid_preds = []
-            all_valid_targets = []
-            for data in tqdm(self.valid_loader):
                 
-                text, targets = data
-                text = self.valid_mask_out(text,targets)
+                if self._config.model.save_model and (config.trainer.save_n_steps > 0) and not (counter % config.trainer.save_n_steps):
+                    metrics = self.validate(printer_counter)
+                    save(self.model, self.optimizer, (self.epochs+epoch_num)+1+counter/10000, metrics, self._config)
+                    print("saved model")
                 
-                with torch.no_grad():
-                    preds, _ = self.model(text.to(self.device))
-                
-                mask_tokens = torch.tensor(text == 250001).bool()
-                predictions = preds[mask_tokens.unsqueeze(2).repeat((1,1,4)).to(self.device)]
-                targets = targets[mask_tokens]
-                all_valid_targets.append(targets)
-                
-                loss = self.criterion(predictions.view(-1, self._config.model.num_classes), targets.to(self.device).view(-1))
-                valid_loss += loss.mean().item()
 
-                all_valid_preds.append(predictions.detach().cpu().numpy())
-
-            valid_loss /= len(self.valid_loader)
-            all_valid_preds = np.concatenate(all_valid_preds)
-            all_valid_targets = np.concatenate(all_valid_targets)
-            
-            metrics = get_eval_metrics(all_valid_targets, all_valid_preds, self._config) # changed from self.all_valid_target
-            metrics["loss"] = valid_loss
-
-            print_metrics(printer_counter, metrics, self.summary_writer, 'valid',
-                          model_name=self._config.model.name)
-
+            metrics = self.validate(printer_counter)
             # Save model every epoch
-            save(self.model, self.optimizer, epoch_num+1, metrics, self._config)
-            print("saved model")
-
+            if self._config.model.save_model:
+                save(self.model, self.optimizer, self.epochs+epoch_num+1, metrics, self._config)
+                print("saved model")

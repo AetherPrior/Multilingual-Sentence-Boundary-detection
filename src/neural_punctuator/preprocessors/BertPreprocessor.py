@@ -10,8 +10,12 @@ from transformers import AutoTokenizer, AutoModel
 class BertPreprocessor(BasePreprocessor):
     def __init__(self, config):
         super().__init__(config)
-        self._tokenizer = torch.hub.load(self._config.model.bert_github_repo, 'tokenizer', self._config.model.bert_variant_to_load)
-
+        self._tokenizer = AutoTokenizer.from_pretrained(self._config.model.load_model_repo) #torch.hub.load(self._config.model.bert_github_repo, 'tokenizer', self._config.model.bert_variant_to_load)
+    
+    def transform(self, input_texts):
+        pass
+    def inverse_transform(self, *args):
+        pass
     # def transform(self, input_texts):
     #     encoded_texts = []
     #     for text in tqdm(input_texts):

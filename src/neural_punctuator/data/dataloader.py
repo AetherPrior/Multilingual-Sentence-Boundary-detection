@@ -35,7 +35,7 @@ class BertDataset(Dataset):
     def __getitem__(self, idx):
 
         shift = np.random.randint(self.config.trainer.seq_shift) - self.config.trainer.seq_shift // 2\
-            if self.is_train else 0
+            if (self.is_train and self.config.trainer.seq_shift > 0) else 0
 
         start_idx = idx * self.config.model.seq_len + shift
         start_idx = max(0, start_idx)

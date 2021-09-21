@@ -2,6 +2,7 @@ import logging
 import sys
 import pickle
 import torch
+import math
 
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-9s %(message)s'))
@@ -42,3 +43,7 @@ def load(model, optimizer, config=None):
     model.load_state_dict(checkpoint['model_state_dict'])
     if optimizer is not None:
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    epochs = checkpoint['epoch']
+    if (epochs*10)%10:
+        epochs = math.floor(epochs)
+    return epochs

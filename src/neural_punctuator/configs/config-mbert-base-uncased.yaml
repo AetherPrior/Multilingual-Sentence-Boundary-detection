@@ -3,10 +3,10 @@ debug:
   break_train_loop: false
 
 experiment:
-  name: xlm-roberta-base
+  name: bert-base-multilingual-uncased
 
 data:
-  data_path: /content/drive/MyDrive/SUD_PROJECT/neural-punctuator/dataset/dual/xlm-roberta-base/
+  data_path: /content/drive/MyDrive/SUD_PROJECT/neural-punctuator/dataset/dual/mbert-base-uncased/
   output_labels: [empty, period, question, comma]
 
 preprocessor:
@@ -14,15 +14,15 @@ preprocessor:
 
 model:
   name: ted-talks
-  load_model_repo: xlm-roberta-base
+  load_model_repo: bert-base-multilingual-uncased
   bert_output_dim: 768
   linear_hidden_dim: 1568
   num_classes: 4
   seq_len: 512
   dropout: 0.2
 
-  save_model: true
-  save_model_path: /content/drive/MyDrive/SUD_PROJECT/neural-punctuator/models-xlm-roberta
+  save_model: false
+  save_model_path: /content/drive/MyDrive/SUD_PROJECT/neural-punctuator/models-mbert/
 
 trainer:
   use_gpu: cuda:0
@@ -39,7 +39,7 @@ trainer:
   grad_clip: 1.5
   weight_decay: 0.01
   train_bert: true
-  load_model: # xlm-roberta-base-epoch-0.pth
-  seq_shift: 0   # Shift each training sample +-seq_shift to get more different samples
+  load_model: # xlm-roberta-base-epoch-2.pth
+  seq_shift: 8   # Shift each training sample +-seq_shift to get more different samples
   show_confusion_matrix: false
 
