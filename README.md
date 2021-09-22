@@ -48,7 +48,7 @@ Use the `--data-path` argument to set the data directory:
 
 #### Creation (WIP): 
 Source for the IWSLT dataset is over [here (train and dev)](https://wit3.fbk.eu/2012-03) and [here(test)](https://wit3.fbk.eu/2012-03-b). 
-The `notebooks` folder has the necessary notebooks for the dataset creation. 
+The `notebooks` folder has the necessary notebooks for the dataset creation.   
 WIP: converting the notebooks to python scripts.
 
 ### Running the program
