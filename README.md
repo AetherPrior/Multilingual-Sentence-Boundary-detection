@@ -1,16 +1,16 @@
 # Multilingual SBD using BERT models
 
-## Source: ##
+## Source attribution: ##
 
-BERT Framework borrowed from [here](https://github.com/attilanagy234/neural-punctuator/)  
+BERT punctuator Framework code borrowed from [here](https://github.com/attilanagy234/neural-punctuator/)  
 
 Modifications have been made to the notebooks, the data preprocessing, and the model architecture.  
 
 ## Installation and Usage: ##
 ### Virtual environment:  
-It is **HIGHLY RECOMMENDED** to use a virtualenv for this project  
+It is **HIGHLY RECOMMENDED** to use a virtualenv for this project:    
 1. Setup is fairly easy, open up a terminal and do:  
-        - `python -m venv /path/to/root/dire/.../.../venv_name`    
+  - `python -m venv /path/to/root/dire/.../.../venv_name`    
 2. Then everytime you want to run the program, just do  
 	- `source ./venv/bin/activate`
 
@@ -20,13 +20,9 @@ Install the required libraries via the requirements.txt file
 
 ### Dataset: ##
 
-#### Creation: 
-Source for dataset TODO (check iwslt). The `notebooks` folder has the necessary notebooks for the dataset creation. 
-
-
 #### Pre-built:  
 
-Get the dataset here. Store the dataset in any folder and provide the necessary arguments to the model  
+Get the dataset [here](https://drive.google.com/drive/folders/10NcydjpBwjIOHrm0g87LYS7Ebs8xPPP4?usp=sharing). Store the dataset in any folder and provide the necessary arguments to the model  
 
 The dataset folder structure is as follows:  
 
@@ -49,6 +45,11 @@ Use the `--data-path` argument to set the data directory:
   --data-path DATA_PATH
                         path to dataset directory
 ```
+
+#### Creation (WIP): 
+Source for the IWSLT dataset is over [here (train and dev)](https://wit3.fbk.eu/2012-03) and [here(test)](https://wit3.fbk.eu/2012-03-b). 
+The `notebooks` folder has the necessary notebooks for the dataset creation. 
+WIP: converting the notebooks to python scripts.
 
 ### Running the program
 
@@ -91,6 +92,13 @@ python main.py \
 --stage 'xlm-roberta-base-epoch-1.pth'
 ```
 
+**NOTE**: Make sure that any directory mentioned in the command actually exists!  
 
+
+## Bibiliography  
+
+Nagy, Attila, Bence Bial, and Judit Ács. "Automatic punctuation restoration with BERT models." arXiv preprint arXiv:2101.07343 (2021).
+
+Federico, Marcello, et al. "Overview of the IWSLT 2012 evaluation campaign." IWSLT-International Workshop on Spoken Language Translation. 2012.
 
 

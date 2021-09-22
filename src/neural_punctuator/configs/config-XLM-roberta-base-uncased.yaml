@@ -35,7 +35,7 @@ trainer:
   classifier_learning_rate: 0.0001 #1e-4
   metrics: [precision, recall, f-score, auc]
   warmup_steps: 300
-  clip_seq: 32
+  clip_seq: 32 #not that it matters, I have commented out the code
   grad_clip: 1.5
   weight_decay: 0.01
   train_bert: true
