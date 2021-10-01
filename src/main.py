@@ -43,7 +43,9 @@ def override_arguments(args,config):
     
     if args.save_n_steps > 0:
         config.trainer.save_n_steps = args.save_n_steps
-    
+    else:
+        config.trainer.save_n_steps = -1
+        
     config.data.data_path = args.data_path
     config.trainer.load_model = args.stage
     config.model.save_model_path = args.model_path

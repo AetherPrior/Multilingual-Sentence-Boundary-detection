@@ -222,7 +222,7 @@ class BertPunctuatorTrainer(BaseTrainer):
                 if self._config.debug.break_train_loop:
                     break
                 
-                if self._config.model.save_model and (config.trainer.save_n_steps > 0) and not (counter % config.trainer.save_n_steps):
+                if self._config.model.save_model and (self._config.trainer.save_n_steps > 0) and not (counter % self._config.trainer.save_n_steps):
                     metrics = self.validate(printer_counter)
                     save(self.model, self.optimizer, (self.epochs+epoch_num)+1+counter/10000, metrics, self._config)
                     print("saved model")
