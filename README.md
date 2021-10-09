@@ -101,4 +101,8 @@ Nagy, Attila, Bence Bial, and Judit Ács. "Automatic punctuation restoration wit
 
 Federico, Marcello, et al. "Overview of the IWSLT 2012 evaluation campaign." IWSLT-International Workshop on Spoken Language Translation. 2012.
 
+Husein, Zolkepli. "Malay-Dataset." https://github.com/huseinzol05/Malay-Dataset. (2018).   
+    - Husein, Zolkepli. "Malay-Dataset." https://github.com/huseinzol05/malay-dataset/tree/master/crawl/iium-confession. (2018).  
+    - Husein, Zolkepli. "Malay-Dataset." https://github.com/huseinzol05/malay-dataset/tree/master/translation/local-movies-subtitle. (2018).  
 
+Husein, Zolkepli. "Malaya." https://github.com/huseinzol05/malaya. (2018).  
