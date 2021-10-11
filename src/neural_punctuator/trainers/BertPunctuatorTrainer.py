@@ -78,6 +78,8 @@ class BertPunctuatorTrainer(BaseTrainer):
 
         if self._config.trainer.load_model:
             self.epochs = load(self.model, self.optimizer, self._config)
+        else:
+            self.epochs = 0
 
         self.sched = LinearScheduler(self.optimizer, self._config.trainer.warmup_steps)
 
