@@ -131,6 +131,10 @@ dmypy.json
 .idea
 .DS_STORE
 
+# vscode stuff
+.vscode
+*.code-workspace
+
 # Dataset folder and result logs
 dataset/
 result-logs/
