@@ -42,6 +42,16 @@ class BertPunctuatorTrainer(BaseTrainer):
         else:
             self.device = torch.device('cpu')
 
+        model_family = self._config.model.load_model_repo.split('-')[0]
+        
+        if model_family == 'bert':
+            self.mask_token = '[MASK]'
+        elif model_family == 'xlm':
+            self.mask_token = '<mask>'
+        else:
+            log.error("Please use a proper model")
+            exit(1)
+            
         self.train_dataset, self.valid_dataset, self.space_count, self.p_count, self.q_count, self.comma_count = get_datasets_metrics(config)
         self.punct_count = self.space_count + self.p_count + self.q_count + self.comma_count
  
@@ -95,28 +105,42 @@ class BertPunctuatorTrainer(BaseTrainer):
         """
         mask some punctuations 
         """
-
-        mask =   ((text == 6) & (np.random.rand(*text.shape) < 1- self.space_count / self.punct_count ))
-        mask |=  ((text == 4) & (np.random.rand(*text.shape) < 1- self.comma_count / self.punct_count )) 
-        mask |=  (((text == 5) | (text == 30)) & (np.random.rand(*text.shape) < 1- self.p_count / self.punct_count))
-        mask |=  ((text == 705) & (np.random.rand(*text.shape) < 1- self.q_count / self.punct_count))
+        period = self._preprocessor._tokenizer.encode(".")[1:-1]
+        chinese_period = self._preprocessor._tokenizer.encode("｡")[1:-1]
+        comma = self._preprocessor._tokenizer.encode(",")[1:-1]
+        question = self._preprocessor._tokenizer.encode("?")[1:-1]
+        mask_token_number = self._preprocessor._tokenizer.encode(self.mask_token)[1:-1]
+        
+        space_placeholder = 6
+        
+        mask =   ((text == space_placeholder) & (np.random.rand(*text.shape) < 1- self.space_count / self.punct_count ))
+        mask |=  ((text == comma) & (np.random.rand(*text.shape) < 1- self.comma_count / self.punct_count )) 
+        mask |=  (((text == period) | (text == chinese_period)) & (np.random.rand(*text.shape) < 1- self.p_count / self.punct_count))
+        mask |=  ((text == question) & (np.random.rand(*text.shape) < 1- self.q_count / self.punct_count))
         mask &=  (targets != -1).type(torch.uint8) # corner case due to data inconsistencies
 
         mask = mask.bool()
-        text[mask] = 250001
+        text[mask] = mask_token_number
         return text
     
     def full_mask_out(self,text,targets):
         """
         mask every single punctuation mark
         """
-        values_mask = [4,5,30,6,705]
+        period = self._preprocessor._tokenizer.encode(".",add_special_tokens=False)[1]
+        chinese_period = self._preprocessor._tokenizer.encode("｡",add_special_tokens=False)[1]
+        comma = self._preprocessor._tokenizer.encode(",",add_special_tokens=False)[1]
+        question = self._preprocessor._tokenizer.encode("?",add_special_tokens=False)[0]
+        mask_token_number = self._preprocessor._tokenizer.encode(self.mask_token,add_special_tokens=False)[0]
+        self.mask_token_number = mask_token_number
+        space_placeholder = 6
         
+        values_mask = [period,comma,chinese_period,space_placeholder,question]
         mask =  sum(text == i for i in values_mask)
         mask &=  (targets != -1).type(torch.uint8)
         mask = mask.bool()
         
-        text[mask] = 250001
+        text[mask] = mask_token_number
         return text        
 
     def validate(self, printer_counter):    
@@ -133,7 +157,7 @@ class BertPunctuatorTrainer(BaseTrainer):
             with torch.no_grad():
                 preds, _ = self.model(text.to(self.device))
             
-            mask_tokens = torch.tensor(text == 250001).bool()
+            mask_tokens = torch.tensor(text == self.mask_token_number).bool()
             predictions = preds[mask_tokens.unsqueeze(2).repeat((1,1,4)).to(self.device)]
             targets = targets[mask_tokens]
             all_valid_targets.append(targets)
@@ -194,7 +218,7 @@ class BertPunctuatorTrainer(BaseTrainer):
                 # mask = mask.to(self.device)
 
                 # Do not predict output after tokens which are not the end of a word
-                mask_tokens = torch.tensor(text == 250001).to(self.device).bool()
+                mask_tokens = torch.tensor(text == self.mask_token_number).to(self.device).bool()
                 
                 targets = targets[mask_tokens] 
                 

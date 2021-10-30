@@ -64,6 +64,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     config = get_config_from_yaml(
         'neural_punctuator/configs/config-XLM-roberta-base-uncased.yaml')
+    #config = get_config_from_yaml(
+    #    'neural_punctuator/configs/config-bert-base-multilingual-uncased.yaml')
     config = override_arguments(args,config)
 
     if config.model.save_model == False:
