@@ -68,6 +68,9 @@ instance/
 # Scrapy stuff:
 .scrapy
 
+# Wandb
+wandb/
+
 # Sphinx documentation
 docs/_build/
 
@@ -140,3 +143,4 @@ dataset/
 result-logs/
 runs/
 reports/
+webapp/data/

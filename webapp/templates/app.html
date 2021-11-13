@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <title></title>
+    <link rel="stylesheet" type="text/css" href="../static/style.css">
+</head>
+<body>
+<header>
+    <div class="container">
+        <div id="brandname">
+            BERT App with Flask
+        </div>
+        <h2>AutoPunctuation</h2>
+    </div>
+</header>
+<div class="container">
+    <form action="{{url_for('predict')}}" method="POST">
+    <p>Enter Your Unpunctuated text Here</p>
+        <label>
+            <textarea name="message" rows="10" cols="40"></textarea>
+        </label>
+        <br/>
+    <input type="submit" value="predict">
+</form>
+</div>
+<div class="results">
+    <h3 style="color:black;text-align: center;">
+        <b>Your punctuation is as follows:</b>
+    </h3>
+    <h3 style="color:black;text-align: center;">
+    {{ prediction }}
+    </h3>
+</div>
+</body>
+</html>
