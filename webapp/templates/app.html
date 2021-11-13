@@ -7,29 +7,31 @@
 <body>
 <header>
     <div class="container">
-        <div id="brandname">
-            BERT App with Flask
+        <div class="brandname">
+            AutoPunctuation
         </div>
-        <h2>AutoPunctuation</h2>
+        <h2>Languages Currently Supported: EN</h2>
     </div>
 </header>
 <div class="container">
     <form action="{{url_for('predict')}}" method="POST">
-    <p>Enter Your Unpunctuated text Here</p>
+    <p style="font-family: Verdana, Geneva, Tahoma, sans-serif;">Enter Your Unpunctuated text Here</p>
         <label>
             <textarea name="message" rows="10" cols="40"></textarea>
         </label>
         <br/>
-    <input type="submit" value="predict">
+    <input class="button" type="submit" value="Punctuate">
 </form>
 </div>
 <div class="results">
     <h3 style="color:black;text-align: center;">
         <b>Your punctuation is as follows:</b>
     </h3>
-    <h3 style="color:black;text-align: center;">
-    {{ prediction }}
-    </h3>
+    <div class="card">
+        <h3 style="color:black;text-align: center;">
+            {{ prediction }}
+        </h3>
+    </div>
 </div>
 </body>
 </html>

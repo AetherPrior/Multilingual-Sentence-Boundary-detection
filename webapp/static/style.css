@@ -1,14 +1,32 @@
 body{
 	font:15px/1.5 Arial, Helvetica,sans-serif;
 	padding: 0;
-	background-color: #f4f3f3;
+	background-color:papayawhip;
 }
-
+.results{
+	margin: auto;
+	align-items: center;
+}
+.card {
+	/* Add shadows to create the "card" effect */
+	width:fit-content;
+    margin-left: auto;
+    margin-right: auto;
+	padding: 0px 50px;
+	background-color:lightgoldenrodyellow;
+	box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+	border-radius: 10px;
+	transition: 0.3s;
+  }
+  
+  /* On mouse-over, add a deeper shadow */
+  .card:hover {
+	box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+  }
 .container{
 	text-align:center;
 	width:100%;
 	margin: auto;
-	overflow: hidden;
 }
 
 header{
@@ -17,7 +35,7 @@ header{
 	height:120px;
 	width:100%;
 	padding-top:30px;
-
+	border-radius: 5px;
 }
 
 .main-header{
@@ -33,11 +51,24 @@ header{
 	font-size:30px;
 	color: #161515;
 	margin: 10px;
+	font-family:Verdana, Geneva, Tahoma, sans-serif;
 }
 
 header h2{
 	text-align:center;
 	color:#fff;
+}
+
+textarea
+{
+	border-radius: 4px;
+}
+.button{
+	border: 2px solid #03a9f4;
+	background-color: lightskyblue;
+	border-radius: 5px;
+	padding: 15px 32px;
+	font-size: 30px;
 }
 
 .app{

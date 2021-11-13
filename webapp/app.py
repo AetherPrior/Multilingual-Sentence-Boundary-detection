@@ -12,27 +12,19 @@ def get_config_from_yaml(yaml_file):
     config = DotMap(config_yaml)
     return config
 
-checkpoint = torch.load('.\\data\\xlm-roberta-base-epoch-3.pth')
+checkpoint = torch.load('./data/xlm-roberta-base-epoch-3.pth',map_location=torch.device('cpu'))
 
-model = BertPunctuatorWrapper(get_config_from_yaml('.\config-XLM-roberta-base-uncased.yaml'),checkpoint)  
+model = BertPunctuatorWrapper(get_config_from_yaml('./config-XLM-roberta-base-uncased.yaml'),checkpoint)  
 
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    """ This is the homepage of our API.
-    It can be accessed by http://127.0.0.1:5000/
-    """
     return render_template('app.html')
 
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    """
-    To make a prediction on one sample of the text
-    satire or fake news
-    :return: a result of prediction in HTML page
-    """
 
     message = request.form['message']
     text = model.predict(message)
@@ -41,4 +33,4 @@ def predict():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0',debug=True)
