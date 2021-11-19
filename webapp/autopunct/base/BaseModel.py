@@ -37,13 +37,3 @@ class BaseModel(nn.Module):
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())
         params = sum([np.prod(p.size()) for p in model_parameters])
         return super().__str__() + '\nTrainable parameters: {}'.format(params)
-
-    def save_model(self, optimizer, epoch):
-        log.info("Saving model...")
-        torch.save(self.state_dict(), f'saved/models/{self._config.model.name}_{str(epoch)}.pth')
-        torch.save(optimizer.state_dict(), f'saved/models/{self._config.model.name}_{str(epoch)}_optimizer_state.pth')
-
-    def load_model(self, optimizer, epoch, model_name):
-        log.info("Loading model...")
-        self.load_state_dict(torch.load(f'saved/models/{model_name}_{str(epoch)}.pth'))
-        optimizer.load_state_dict(torch.load(f'saved/models/{model_name}_{str(epoch)}_optimizer_state.pth'))

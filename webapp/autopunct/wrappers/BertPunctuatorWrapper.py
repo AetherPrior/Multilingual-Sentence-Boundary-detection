@@ -1,6 +1,9 @@
 
 import numpy as np
 import torch
+import jieba
+import re
+from collections import OrderedDict
 from transformers.models.auto.tokenization_auto import AutoTokenizer
 from autopunct.base.BaseWrapper import BaseWrapper
 from autopunct.models.BertPunctuator import BertPunctuator
@@ -16,7 +19,6 @@ class BertPunctuatorWrapper(BaseWrapper):
         self._classifier.eval()
 
         self._tokenizer = AutoTokenizer.from_pretrained('xlm-roberta-base')
-        #self._trainer = BertPunctuatorTrainer(self._classifier, self._preprocessor, self._config)
 
     def full_mask_out(self,text,tokenizer):
         """
@@ -31,7 +33,6 @@ class BertPunctuatorWrapper(BaseWrapper):
 
         values_mask = [period,comma,chinese_period,space_placeholder,question]
         mask = sum(text == i for i in values_mask)
-        #mask &=  (targets != -1).type(torch.uint8)
         mask = list(map(bool, mask))
 
         text[mask] = mask_token_number
@@ -40,11 +41,43 @@ class BertPunctuatorWrapper(BaseWrapper):
     def predict(self,message):
         """
         To make a prediction on one sample of the text
-        satire or fake news
         :return: a result of prediction in HTML page
         """
+        position = prev_end = 0
+        lang_delim = OrderedDict()
+        while position < len(message):
+            if '\u4e00' <= message[position] <= '\u9fff':
+                start_zh = position
+                while(position < len(message) and ('\u4e00' <= message[position] <= '\u9fff' or message[position].isspace())): 
+                    position+=1
+                end_zh = position-1
+                if start_zh!= 0:
+                    lang_delim[(prev_end,start_zh-1)] = 'en'
+                lang_delim[(start_zh,end_zh)] = 'zh'
+                prev_end = end_zh+1
+            position+=1
+        if prev_end != len(message):
+            lang_delim[(prev_end, len(message)-1)] = 'en'
 
-        #message = "Hey WorkLifers its Adam Grant I hope youre enjoying season four today I want to share a special bonus conversation with Glennon Doyle"
+        tokens = []
+        for key,val in lang_delim.items():
+            if val == 'en':
+                tokens.extend(message[key[0]:key[1]+1].split(' '))
+            else:
+                tokens.extend(jieba.cut(message[key[0]:key[1]+1],HMM=True))
+
+        encoded_texts = []
+        
+        tokens = [token for token in tokens  if len(self._tokenizer.encode(token)[1:-1]) > 0]
+        
+        for token in tokens:
+            li = self._tokenizer.encode(token)[1:-1]
+            if li and li[0] == 6:
+                li = li[1:]
+            encoded_texts.extend(li)
+            encoded_texts.append(6)
+
+        '''
         data = self._tokenizer.encode(message)
         data_processed = []
 
@@ -53,8 +86,9 @@ class BertPunctuatorWrapper(BaseWrapper):
             data_processed.append(token)
             data_processed.append(6)
         data_processed.append(data[-1])
+        '''
 
-        vect, mask = self.full_mask_out(np.array(data_processed),self._tokenizer)
+        vect, mask = self.full_mask_out(np.array(encoded_texts),self._tokenizer)
         vect = np.expand_dims(vect,axis=0)
         prediction,_ = self._classifier(torch.Tensor(vect).long())
 
@@ -75,7 +109,7 @@ class BertPunctuatorWrapper(BaseWrapper):
                 punctCount+=1
         
         decode = []
-        for i in decoded_inputs[1:-1]:
+        for i in decoded_inputs:
             if i != ' ':
                 decode.append(i)
         

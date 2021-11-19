@@ -12,7 +12,6 @@ from transformers import AutoModel
 class BertPunctuator(BaseModel):
     def __init__(self, config):
         super().__init__(config)
-        # self.base = torch.hub.load(self._config.model.bert_github_repo, 'model', self._config.model.bert_variant_to_load)
         self.base = AutoModel.from_pretrained(self._config.model.load_model_repo, return_dict=False)
 
         if not self._config.trainer.train_bert:
@@ -67,14 +66,6 @@ class Classifier(BaseModel):
         x = self.linear2(x)
         return x, binary_output
 
-'''
-def loss(model,x,y_true,y_pred):
-    loss_y , loss_y_hat = [],[]
-    for word, y_hat, y in zip(x,y_true,y_pred):
-        if word == 250001:
-            loss_y.append(y_true)
-            loss_y_hat.append(y_pred)
-'''          
     
             
             
