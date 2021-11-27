@@ -2,12 +2,10 @@
 import numpy as np
 import torch
 import jieba
-import re
 from collections import OrderedDict
 from transformers.models.auto.tokenization_auto import AutoTokenizer
 from autopunct.base.BaseWrapper import BaseWrapper
 from autopunct.models.BertPunctuator import BertPunctuator
-#from trainers.BertPunctuatorTrainer import BertPunctuatorTrainer
 
 
 class BertPunctuatorWrapper(BaseWrapper):
@@ -38,7 +36,7 @@ class BertPunctuatorWrapper(BaseWrapper):
         text[mask] = mask_token_number
         return text, mask
 
-    def predict(self,message):
+    def predict(self,message, ptype='all'):
         """
         To make a prediction on one sample of the text
         :return: a result of prediction in HTML page
@@ -99,7 +97,7 @@ class BertPunctuatorWrapper(BaseWrapper):
         prediction = prediction.reshape(-1,4)
         prediction = prediction.argmax(-1)
 
-        punctArray = [' ','.','?',',']
+        punctArray = [' ','.','?',','] if ptype == 'all' else [' ','.',' ',' ']
         decoded_inputs  = self._tokenizer.convert_ids_to_tokens(vect[0])
         
         punctCount = 0

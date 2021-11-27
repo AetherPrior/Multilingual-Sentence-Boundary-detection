@@ -2,8 +2,13 @@ version: "3.8"
 services:
   app:
     build: .
-    command: python app.py
+    command: python app.py --docker
     ports:
       - "5000:5000"
     volumes:
       - .:/autopunct
+      - ../data-webapp:/data
+    deploy:
+      resources:
+        limits:
+          memory: 16G

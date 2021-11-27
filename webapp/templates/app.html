@@ -10,28 +10,99 @@
         <div class="brandname">
             AutoPunctuation
         </div>
-        <h2>Languages Currently Supported: EN, ZH</h2>
+        <h2>Languages Currently Supported: EN+ZH, MS</h2>
     </div>
 </header>
 <div class="container">
-    <form action="{{url_for('predict')}}" method="POST">
-    <p style="font-family: Verdana, Geneva, Tahoma, sans-serif;">Enter Your Unpunctuated text Here</p>
+    <form action="{{url_for('lang_change')}}" method=POST>
+        <p>Enter language: </p>
+        <input type="radio" id="eng_zh" name="fav_language" value="dual" {{ checked }}>
+          <label for="eng_zh">English+Chinese</label><br>
+        <input type="radio" id="malay" name="fav_language" value="ms" {{ checked_ms }}>
+          <label for="malay">Malay</label><br>
+        <p>Enter punctuation type: </p>
+        <input type="radio" id="all" name="punc_type" value="all" {{ all_checked }}>
+          <label for='all'>All punctuations</label>
+        <input type="radio" id="period_only" name="punc_type" value="period" {{ period_checked }}> 
+          <label for='period_only'>Sentence endings only (fullstops)</label><br>
+        <input type='submit' value='Submit'>
+    </form>
+    <!--form action="{{url_for('predict')}}" method="POST"--> 
+    <form onSubmit="return onPunctuate();">
+        <p style="font-family: Verdana, Geneva, Tahoma, sans-serif;">Enter Your Unpunctuated text Here</p>
         <label>
-            <textarea name="message" rows="10" cols="40"></textarea>
+            <textarea id='unpunct' name="message" rows="10" cols="40" onkeypress="onSpacePress();"></textarea>
         </label>
         <br/>
     <input class="button" type="submit" value="Punctuate">
-</form>
+    </form>
 </div>
 <div class="results">
     <h3 style="color:black;text-align: center;">
         <b>Your punctuation is as follows:</b>
     </h3>
     <div class="card">
-        <h3 style="color:black;text-align: center;">
+        <h3 id='predtext' name='predtext' style="color:black;text-align: center;">
             {{ prediction }}
         </h3>
     </div>
 </div>
 </body>
+<script>
+    function onSpacePress(){
+        let key = window.event.keyCode;
+        if(key != 32)return true;
+        else{
+            message = document.getElementById('unpunct').value
+            let xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = () => {         
+                    if (xhr.readyState == 4 && xhr.status == 200)
+                    {
+                        updateFormCallback(xhr.responseText); // Another callback here
+                    }
+                }
+            xhr.open("POST", "{{url_for('predict')}}", true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify({
+                message: message
+            }));
+            return false;
+        }
+    }
+    function onPunctuate(){
+        let message = document.getElementById('unpunct').value
+        let xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = () => {         
+                    if (xhr.readyState == 4 && xhr.status == 200)
+                    {
+                        updateFormCallback(xhr.responseText); // Another callback here
+                    }
+            }
+        xhr.open("POST", "{{url_for('predict')}}", true);
+        console.log("here")
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(JSON.stringify({
+                message: message
+            }));
+        return false;
+    }
+    function updateFormCallback(text){
+        let parser = new DOMParser();
+        let htmlDoc = parser.parseFromString(text, 'text/html');
+        message = htmlDoc.getElementById("predtext").innerText;
+        message = sentenceCase(message,lowercaseBefore = false)
+        document.getElementById('predtext').innerHTML = message;
+    }
+
+    // credits: https://stackoverflow.com/questions/40669216/capitalize-words-after-each-dot-starting-of-a-string
+    function sentenceCase(input, lowercaseBefore) {
+    console.log(input);
+    input = ( input === undefined || input === null ) ? '' : input;
+    if (lowercaseBefore) { input = input.toLowerCase(); }
+    return input.toString().replace( /(^\s*|\. *)([a-z])/g, function(match, separator, char) {
+        return separator + char.toUpperCase();
+    });
+    }
+
+</script>
 </html>

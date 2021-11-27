@@ -13,11 +13,11 @@ class BertPunctuator(BaseModel):
     def __init__(self, config):
         super().__init__(config)
         self.base = AutoModel.from_pretrained(self._config.model.load_model_repo, return_dict=False)
-
+        '''
         if not self._config.trainer.train_bert:
             for param in self.base.parameters():
                 param.requires_grad = False
-
+        '''
         self.classifier = Classifier(self._config)
 
     def forward(self, x):
