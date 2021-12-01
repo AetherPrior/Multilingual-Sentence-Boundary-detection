@@ -2,6 +2,7 @@ import torch
 import os
 import yaml
 import argparse
+import json
 
 from dotmap import DotMap
 from autopunct.wrappers.BertPunctuatorWrapper import BertPunctuatorWrapper
@@ -18,7 +19,7 @@ def get_config_from_yaml(yaml_file):
     return config
 
 root_model_path = '../data-webapp'
-dual_model_path = 'xlm-roberta-base-epoch-3.pth'
+dual_model_path = 'xlm-roberta-base-dual.pth'
 malay_model_path = 'xlm-roberta-base-ms.pth'
 curr_path = 'dual'
 ptype = 'all'
@@ -37,13 +38,26 @@ def home():
 
 @app.route('/lang_change',methods=['POST'])
 def lang_change():
+    """
+    To offer a provision to change the language of the model
+    :returns: The html page
+    :effect: Model is changed 
+    """
     global model, curr_path, root_model_path, malay_model_path, dual_model_path, ptype
     try: 
         message = request.form['fav_language']
         ptype = request.form['punc_type']
     except KeyError:
-        res = render_template('app.html',checked=None, checked_ms=None)
-        return res
+        try:
+            message = request.json['fav_language']
+            ptype = request.json['punc_type']
+        except Exception:
+            checked = "checked" if curr_path == 'dual' else None
+            checked_ms = "checked" if curr_path == 'ms' else None
+            checked_all = "checked" if ptype == 'all' else None
+            checked_end = "checked" if ptype == 'period' else None
+            res = render_template('app.html',checked=checked, checked_ms=checked_ms,checked_all=checked_all,checked_end=checked_end)
+            return res
     
     if message == 'ms' and curr_path != 'ms':
         curr_path = 'ms'
@@ -58,22 +72,52 @@ def lang_change():
  
     checked = "checked" if curr_path == 'dual' else None
     checked_ms = "checked" if curr_path == 'ms' else None
+    checked_all = "checked" if ptype == 'all' else None
+    checked_end = "checked" if ptype == 'period' else None
 
-    print(checked, checked_ms)
-    res = render_template('app.html',checked=checked, checked_ms=checked_ms)
+    res = render_template('app.html',checked=checked, checked_ms=checked_ms, checked_all=checked_all,checked_end=checked_end)
     return res
+
+def sentenceCase(inSentence, lowercaseBefore):
+    inSentence = '' if (inSentence is None) else inSentence
+    if lowercaseBefore:
+        inSentence = inSentence.lower()
     
+    ## capitalize first letter
+    words = inSentence.split()
+    words[0] = words[0].capitalize() 
+
+    ## finish the rest
+    for i in range(0,len(words)-1):
+        if words[i][-1] in ['.','?']:
+            words[i+1] = words[i+1].capitalize()
+    
+    inSentence = " ".join(words)
+    return inSentence    
 
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
         message = request.form['message']
     except Exception:
-        message = request.json['message'].strip()
+        try:
+            message = request.json['message'].strip()
+        except Exception:
+            return json.dumps({})
 
     text = model.predict(message,ptype=ptype)
-    res = render_template('app.html', prediction=text)
+    res = render_template('app.html', prediction=sentenceCase(text,lowercaseBefore=True))
     return res
+
+@app.route('/backend_predict',methods=['POST']) # content_type: application/json
+def backend_predict():
+    try:
+        message = request.json['message'].strip()
+    except Exception:
+        return json.dumps({})
+    text = model.predict(message,ptype=ptype)
+    res = {'prediction': sentenceCase(text, lowercaseBefore=True)}
+    return json.dumps(res)
 
 
 if __name__ == '__main__':
@@ -82,4 +126,6 @@ if __name__ == '__main__':
         root_model_path = '/data'
     
     model = BertPunctuatorWrapper(get_config_from_yaml('./config-XLM-roberta-base-uncased.yaml'),torch.load(os.path.join(root_model_path,dual_model_path),map_location=torch.device('cpu')))  
-    app.run(host='0.0.0.0',debug=True)
+    from waitress import serve
+    serve(app,host='0.0.0.0',port=5000)
+

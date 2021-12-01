@@ -5,3 +5,4 @@ torch-optimizer
 transformers
 jieba
 flask
+waitress

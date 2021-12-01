@@ -95,6 +95,9 @@ python main.py \
 **NOTE**: Make sure that any directory mentioned in the command actually exists!  
 
 
+## Deployment (with docker)
+See `webapp/` directory
+
 ## Bibiliography  
 
 Nagy, Attila, Bence Bial, and Judit Ács. "Automatic punctuation restoration with BERT models." arXiv preprint arXiv:2101.07343 (2021).

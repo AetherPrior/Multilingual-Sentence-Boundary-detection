@@ -75,17 +75,6 @@ class BertPunctuatorWrapper(BaseWrapper):
             encoded_texts.extend(li)
             encoded_texts.append(6)
 
-        '''
-        data = self._tokenizer.encode(message)
-        data_processed = []
-
-        data_processed.append(data[0])
-        for token in data[1:-1]: 
-            data_processed.append(token)
-            data_processed.append(6)
-        data_processed.append(data[-1])
-        '''
-
         vect, mask = self.full_mask_out(np.array(encoded_texts),self._tokenizer)
         vect = np.expand_dims(vect,axis=0)
         prediction,_ = self._classifier(torch.Tensor(vect).long())
