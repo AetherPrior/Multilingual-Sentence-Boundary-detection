@@ -5,15 +5,13 @@ import jieba
 from collections import OrderedDict
 from transformers.models.auto.tokenization_auto import AutoTokenizer
 from autopunct.base.BaseWrapper import BaseWrapper
-from autopunct.models.BertPunctuator import BertPunctuator
 
 
 class BertPunctuatorWrapper(BaseWrapper):
     def __init__(self, config, checkpoint):
         super().__init__(config)
 
-        self._classifier = BertPunctuator(config)
-        self._classifier.load_state_dict(checkpoint['model_state_dict'])
+        self._classifier = torch.jit.load(checkpoint)
         self._classifier.eval()
 
         self._tokenizer = AutoTokenizer.from_pretrained('xlm-roberta-base')

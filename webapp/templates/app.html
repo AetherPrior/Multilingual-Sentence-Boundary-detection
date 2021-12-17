@@ -14,19 +14,10 @@
     </div>
 </header>
 <div class="container">
-    {% if ((checked is not none) and (checked_ms is not none )) or ((checked is not defined) and (checked_ms is not defined ))%}  
-        {% set checked = "checked" %}
-    {% endif %}
     {% if ((checked_all is not none) and (checked_end is not none)) or ((checked_all is not defined) and (checked_end is not defined)) %}
         {% set checked_all = "checked" %}
     {% endif %}
     <form action="{{url_for('lang_change')}}" method=POST>
-        <!--
-        <p>Enter language: </p><input type="radio" id="eng_zh" name="fav_language" value="dual" {{ checked }}>
-          <label for="eng_zh">English+Chinese</label>
-        <input type="radio" id="malay" name="fav_language" value="ms" {{ checked_ms }}>
-          <label for="malay">Malay</label><br>
-        -->
         <p>Enter punctuation type: </p>
         <input type="radio" id="all" name="punc_type" value="all" {{ checked_all }}>
           <label for='all'>All punctuations</label>
@@ -34,7 +25,6 @@
           <label for='period_only'>Sentence endings only (fullstops)</label><br>
         <input class="button" type='submit' value='Submit'>
     </form>
-    <!--form action="{{url_for('predict')}}" method="POST"--> 
     <form onSubmit="return onPunctuate();">
         <p style="font-family: Verdana, Geneva, Tahoma, sans-serif;">Enter Your Unpunctuated text Here</p>
         <label>

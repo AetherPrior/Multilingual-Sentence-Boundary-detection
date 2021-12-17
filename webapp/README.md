@@ -2,14 +2,21 @@
 ## Deployment (with docker compose)
 
 - Pull the image from dockerhub: https://hub.docker.com/repository/docker/aetherprior/sud
-- Download the XLM-R models for both English + Zh and Malay from here: https://drive.google.com/drive/folders/1ZdKn4i6WXN9_rPot1lx-_0EJnTzw5HuD?usp=sharing
+- Download the XLM-R traced model for the three languages from here: https://drive.google.com/drive/folders/15dXlprTXuvUVKmZRKd_1Pz8rCZr1BmPQ?usp=sharing
+
 - Navigate to the webapp directory, and change the `../data-webapp` directory in the `docker-compose.yml` to the directory of the downloaded files
-- In the terminal, type `docker compose up` . The image will be build and the webapp will be served at port 5000 at localhost
+- In the terminal, type `docker compose up` . The image will be built and the webapp will be served at port 5000 at localhost
+
+### Optional: Running your own trained model 
+- Aside from the trained model, it is required to export the pytorch `jit trace` of the model, with a dummy input before running, to optimize on memory
+- Export the trace of the trained model, using the `export_trace.py` script to the model directory 
+  - Note that the model would be saved with the name `saved_model.pth` in the same directory. Move it to your volume mount directory
+- Proceed with deployment as usual 
 
 ## Deployment (with docker)
 
 - Pull the image from dockerhub: https://hub.docker.com/repository/docker/aetherprior/sud
-- Download the XLM-R models for both English + Zh and Malay from here: https://drive.google.com/drive/folders/1ZdKn4i6WXN9_rPot1lx-_0EJnTzw5HuD?usp=sharing
+- Download the XLM-R model for the three languages from here: https://drive.google.com/drive/folders/15dXlprTXuvUVKmZRKd_1Pz8rCZr1BmPQ?usp=sharing
 
 Run the following command:  
 ```
@@ -49,3 +56,7 @@ r = requests.post('http://localhost:5000/backend_predict',data=json.dumps({'mess
 print(r.content)
 r = requests.post('http://localhost:5000/lang_change',data=json.dumps({'fav_language': 'dual', 'punc_type': 'all'}), headers=headers)
 ```
+
+## Recommendations (if taken further)  
+- Use ONNX instead of pytorch jit
+    - Due to technical issues, we have decided to go with pytorch jit traces instead. 
