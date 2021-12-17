@@ -1,3 +1,4 @@
+from time import time
 import logging
 import sys
 import torch
@@ -9,6 +10,7 @@ from neural_punctuator.models.BertPunctuator import BertPunctuator
 from torch.optim import AdamW  # TODO
 from torch_optimizer import RAdam
 from torch import nn
+import wandb
 from torch.utils.tensorboard import SummaryWriter
 
 from neural_punctuator.utils.data import get_target_weights
@@ -158,7 +160,7 @@ class BertPunctuatorTrainer(BaseTrainer):
                 preds, _ = self.model(text.to(self.device))
             
             mask_tokens = torch.tensor(text == self.mask_token_number).bool()
-            predictions = preds[mask_tokens.unsqueeze(2).repeat((1,1,4)).to(self.device)]
+            predictions = preds[mask_tokens.unsqueeze(2).repeat((1,1,self._config.model.num_classes)).to(self.device)]
             targets = targets[mask_tokens]
             all_valid_targets.append(targets)
             
@@ -189,21 +191,28 @@ class BertPunctuatorTrainer(BaseTrainer):
     def train(self):
         printer_counter = 0
         torch.autograd.set_detect_anomaly(True)
+        if self._config.debug.break_train_loop:
+            metrics = self.validate(printer_counter)
+            return 0
+
         for epoch_num in range(self._config.trainer.num_epochs):
             log.info(f"Epoch #{self.epochs+epoch_num}")
-
+            
             # Train loop
             self.model.train()
             pbar = tqdm(self.train_loader)
             counter = 0
             for data in pbar:
+                
                 counter+=1
                 self.optimizer.zero_grad()
 
                 text, targets = data
                 
+                starttime = time()
                 text = self.full_mask_out(text,targets)
-                
+                endtime = time()
+                wandb.log({'mask_time': endtime-starttime})
                 if not (counter % 100):
                     print(text.shape)
                     print(self._preprocessor._tokenizer.decode(text[0]))
@@ -218,12 +227,14 @@ class BertPunctuatorTrainer(BaseTrainer):
                 # mask = mask.to(self.device)
 
                 # Do not predict output after tokens which are not the end of a word
+                starttime = time()
                 mask_tokens = torch.tensor(text == self.mask_token_number).to(self.device).bool()
                 
                 targets = targets[mask_tokens] 
                 
-                predictions = preds[mask_tokens.unsqueeze(2).repeat((1,1,4)).to(self.device)]   ## REQUIRES GRAD = True, out-of-place operation
-                
+                predictions = preds[mask_tokens.unsqueeze(2).repeat((1,1,self._config.model.num_classes)).to(self.device)]   ## REQUIRES GRAD = True, out-of-place operation
+                endtime = time()
+                wandb.log({'pred_time': endtime-starttime})
                 losses = self.criterion(predictions.reshape(-1, self._config.model.num_classes),
                                    targets.to(self.device).reshape(-1))
                 loss = losses.mean()
@@ -244,12 +255,17 @@ class BertPunctuatorTrainer(BaseTrainer):
                               self.summary_writer, 'train',
                               model_name=self._config.model.name)
                 printer_counter += 1
-                
-                if self._config.debug.break_train_loop:
-                    break
+
+                wandb.log({'loss': loss, 'step': printer_counter})
+            
                 
                 if self._config.model.save_model and (self._config.trainer.save_n_steps > 0) and not (counter % self._config.trainer.save_n_steps):
                     metrics = self.validate(printer_counter)
+                    wandb.log({'valid_loss': metrics['loss'],
+                                'precision': metrics['precision'],
+                                'recall': metrics['recall'],
+                                'f_score': metrics['f_score'],
+                                'step': printer_counter})
                     save(self.model, self.optimizer, (self.epochs+epoch_num)+1+counter/10000, metrics, self._config)
                     print("saved model")
                 

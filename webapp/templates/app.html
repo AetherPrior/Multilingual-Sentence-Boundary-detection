@@ -10,7 +10,7 @@
         <div class="brandname">
             AutoPunctuation
         </div>
-        <h2>Languages Currently Supported: EN+ZH, MS</h2>
+        <h2>Languages Currently Supported: EN,ZH,MS</h2>
     </div>
 </header>
 <div class="container">
@@ -21,10 +21,12 @@
         {% set checked_all = "checked" %}
     {% endif %}
     <form action="{{url_for('lang_change')}}" method=POST>
+        <!--
         <p>Enter language: </p><input type="radio" id="eng_zh" name="fav_language" value="dual" {{ checked }}>
           <label for="eng_zh">English+Chinese</label>
         <input type="radio" id="malay" name="fav_language" value="ms" {{ checked_ms }}>
           <label for="malay">Malay</label><br>
+        -->
         <p>Enter punctuation type: </p>
         <input type="radio" id="all" name="punc_type" value="all" {{ checked_all }}>
           <label for='all'>All punctuations</label>

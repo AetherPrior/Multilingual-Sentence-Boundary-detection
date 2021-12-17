@@ -2,6 +2,8 @@ from neural_punctuator.utils.data import get_config_from_yaml
 from neural_punctuator.wrappers.BertPunctuatorWrapper import BertPunctuatorWrapper
 import logging
 import argparse
+import wandb
+
 parser = argparse.ArgumentParser(description='arguments for the model')
 parser.add_argument('--save-model', action='store_true',
                     help='save model')
@@ -14,6 +16,9 @@ parser.add_argument('--num-epochs',type=int,default=-1,help='no. of epochs to ru
 parser.add_argument('--log-level',type=str,choices=['INFO','DEBUG','WARNING','ERROR'],default='INFO',help='logging info to be displayed')
 parser.add_argument('--save-n-steps',type=int,help='Save after n steps, default=1 epoch',default=-1)
 parser.add_argument('--force-save',action='store_true',help='Force save, overriding all settings')
+parser.add_argument('--config',type=str, default='neural_punctuator/configs/config-XLM-roberta-base-uncased.yaml', help='Path to config directory')
+
+wandb.init(project="punctuator")
 
 log_enum = {
     'INFO': logging.INFO,
@@ -62,8 +67,7 @@ def override_arguments(args,config):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    config = get_config_from_yaml(
-        'neural_punctuator/configs/config-XLM-roberta-base-uncased.yaml')
+    config = get_config_from_yaml(args.config)
     #config = get_config_from_yaml(
     #    'neural_punctuator/configs/config-bert-base-multilingual-uncased.yaml')
     config = override_arguments(args,config)

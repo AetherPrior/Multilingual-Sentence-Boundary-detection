@@ -18,7 +18,7 @@ model:
   bert_output_dim: 768
   linear_hidden_dim: 1568
   num_classes: 4
-  seq_len: 512
+  seq_len: 256
   dropout: 0.2
 
   save_model: true

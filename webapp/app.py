@@ -19,7 +19,7 @@ def get_config_from_yaml(yaml_file):
     return config
 
 root_model_path = '../data-webapp'
-dual_model_path = 'xlm-roberta-base-dual.pth'
+dual_model_path = 'xlm-roberta-base-epoch-2.pth'
 malay_model_path = 'xlm-roberta-base-ms.pth'
 curr_path = 'dual'
 ptype = 'all'
@@ -45,13 +45,14 @@ def lang_change():
     """
     global model, curr_path, root_model_path, malay_model_path, dual_model_path, ptype
     try: 
-        message = request.form['fav_language']
         ptype = request.form['punc_type']
     except KeyError:
         try:
+            print(request.json)
             message = request.json['fav_language']
             ptype = request.json['punc_type']
         except Exception:
+            print("Exception HIT!")
             checked = "checked" if curr_path == 'dual' else None
             checked_ms = "checked" if curr_path == 'ms' else None
             checked_all = "checked" if ptype == 'all' else None
@@ -59,22 +60,12 @@ def lang_change():
             res = render_template('app.html',checked=checked, checked_ms=checked_ms,checked_all=checked_all,checked_end=checked_end)
             return res
     
-    if message == 'ms' and curr_path != 'ms':
-        curr_path = 'ms'
-        del model
-        print('switching to malay')
-        model = BertPunctuatorWrapper(get_config_from_yaml('./config-XLM-roberta-base-uncased.yaml'),torch.load(os.path.join(root_model_path,malay_model_path),map_location=torch.device('cpu')))  
-    elif message == 'dual' and curr_path != 'dual':
-        curr_path = 'dual'
-        del model
-        print('switching to eng_zh')
-        model = BertPunctuatorWrapper(get_config_from_yaml('./config-XLM-roberta-base-uncased.yaml'),torch.load(os.path.join(root_model_path,dual_model_path),map_location=torch.device('cpu')))
- 
     checked = "checked" if curr_path == 'dual' else None
     checked_ms = "checked" if curr_path == 'ms' else None
     checked_all = "checked" if ptype == 'all' else None
     checked_end = "checked" if ptype == 'period' else None
 
+    print(checked_all,checked_end)
     res = render_template('app.html',checked=checked, checked_ms=checked_ms, checked_all=checked_all,checked_end=checked_end)
     return res
 
@@ -105,7 +96,10 @@ def predict():
         except Exception:
             return json.dumps({})
 
-    text = model.predict(message,ptype=ptype)
+    if len(message) > 0:
+        text = model.predict(message,ptype=ptype)
+    else:
+        text = ""
     res = render_template('app.html', prediction=sentenceCase(text,lowercaseBefore=True))
     return res
 
@@ -126,6 +120,10 @@ if __name__ == '__main__':
         root_model_path = '/data'
     
     model = BertPunctuatorWrapper(get_config_from_yaml('./config-XLM-roberta-base-uncased.yaml'),torch.load(os.path.join(root_model_path,dual_model_path),map_location=torch.device('cpu')))  
-    from waitress import serve
-    serve(app,host='0.0.0.0',port=5000)
+    trace = torch.jit.trace(model._classifier,torch.LongTensor([[1,1,1,1,1]]))
+    with open('saved_model.pth','wb') as f:
+        torch.jit.save(trace,f)
+    #from waitress import serve
+    #serve(app,host='0.0.0.0',port=5000)
+    #app.run(host="0.0.0.0",debug=True)
 
