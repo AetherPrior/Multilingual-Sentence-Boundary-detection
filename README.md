@@ -7,6 +7,10 @@ BERT punctuator Framework code borrowed from [here](https://github.com/attilanag
 Modifications have been made to the notebooks, the data preprocessing, and the model architecture.  
 
 ## Installation and Usage: ##
+
+# Model checkpoint:  
+The model checkpoint has been uploaded to huggingface: AetherPrior/mlm-punct
+
 ### Virtual environment:  
 It is **HIGHLY RECOMMENDED** to use a virtualenv for this project:    
 1. Setup is fairly easy, open up a terminal and do:  
